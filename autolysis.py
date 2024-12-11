@@ -6,10 +6,10 @@ import numpy  as np
 import matplotlib.pyplot as plt
 import httpx
 import chardet
-
+import os
 # Constants
 API_URL = "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
-AIPROXY_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIyZjEwMDAyMTNAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.UrF4VGAcZE6JaDyAjlGqKg5VS1Hhl4rFlhr4uEkNn3M"
+AIPROXY_TOKEN = os.environ["AIPROXY_TOKEN"]
 
 def load_data(file_path):
     """Load CSV data with encoding detection."""
@@ -17,19 +17,6 @@ def load_data(file_path):
         result = chardet.detect(f.read())
     encoding = result['encoding']
     return pd.read_csv(file_path, encoding=encoding)
-
-
-
-def visualize_data(df):
-    """Generate and save visualizations."""
-    sns.set(style="whitegrid")
-    numeric_columns = df.select_dtypes(include=['number']).columns
-    for column in numeric_columns:
-        plt.figure()
-        sns.histplot(df[column].dropna(), kde=True)
-        plt.title(f'Distribution of {column}')
-        plt.savefig(f'{column}_distribution.png')
-        plt.close()
 
 
 def identify_and_remove_identifiers(df):
@@ -55,7 +42,7 @@ def identify_and_remove_identifiers(df):
                         'code', 'reference', 'guid'],
           # Columns with string type and high cardinality
           (df[col].dtype == 'object' and
-           df[col].nunique() > len(df) * 0.9),
+           df[col].nunique() > len(df) * 0.5),
 
           # Columns that look like typical ID formats
           (df[col].dtype == 'object' and
@@ -117,7 +104,7 @@ def Value_composition(df,object_cols):
         'Authorization': f'Bearer {AIPROXY_TOKEN}',
         'Content-Type': 'application/json'
     }
-    prompt = f"Summarize the following data to be futher passed to an LLM for analysis make it as compact as possible: {tmp}"
+    prompt = f"Summarize the following data to be futher passed to an LLM for analysis: {tmp}"
     data = {
         "model": "gpt-4o-mini",
         "messages": [{"role": "user", "content": prompt}]
@@ -156,7 +143,7 @@ def calculate_stats(df, numerical_cols):
         'Authorization': f'Bearer {AIPROXY_TOKEN}',
         'Content-Type': 'application/json'
     }
-    prompt = f"You being a Data Scientist to Your Understading pick imp part of this data and Summarize the following data to be futher passed to an LLM for analysis make it as compact as possible: {stats}"
+    prompt = f"You being a Data Scientist to Your Understading pick imp part of this data and Summarize the following data to be futher passed to an LLM for analysis: {stats}"
     data = {
         "model": "gpt-4o-mini",
         "messages": [{"role": "user", "content": prompt}]
@@ -173,7 +160,7 @@ def generate_narrative(analysis):
         'Authorization': f'Bearer {AIPROXY_TOKEN}',
         'Content-Type': 'application/json'
     }
-    prompt = f"""Provide a detailed analysis based on the following data summary 
+    prompt = f"""Provide a detailed analytic stroy based on the following data summary 
     Have it describe:
 
     The data you received, briefly
@@ -196,9 +183,41 @@ def generate_narrative(analysis):
         print(f"An unexpected error occurred: {e}")
     return "Narrative generation failed due to an error."
 
+
+def generate_dist_plots(df, numerical_cols):
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(15, 50))  # Adjust figure size as needed
+    for col in numerical_cols:
+        plt.figure(figsize=(8, 6))  # Adjust individual plot size as needed
+        plt.hist(df[col], bins=100)  # Adjust number of bins as needed
+        plt.title(f'Distribution of {col}')
+        plt.xlabel(col)
+        plt.ylabel('Frequency')
+        plt.tight_layout()
+        plt.savefig(f'distribution_{col}.png')  # Save each plot with a unique name
+        plt.close()  # Close the figure to free up memory
+
+def create_and_change_dir(filename):
+    import os
+    # Get the directory name from the filename
+    directory_name = os.path.splitext(filename)[0]
+    
+    # Create the directory if it doesn't exist
+    if not os.path.exists(directory_name):
+        os.mkdir(directory_name)
+        print(f"Directory '{directory_name}' created.")
+    else:
+        print(f"Directory '{directory_name}' already exists.")
+    
+    # Change to the new directory
+    os.chdir(directory_name)
+    print(f"Changed directory to '{os.getcwd()}'")
+
 def main(file_path):
-    compact_summarization = ""
     df = load_data(file_path)
+    create_and_change_dir(file_path)
+    compact_summarization = ""
+    
     df = identify_and_remove_identifiers(df)
     df = Drop_URL_Columns(df)
     _,object_cols,numerical_cols = columns_dtype(df)
@@ -207,7 +226,7 @@ def main(file_path):
     compact_summarization = compact_summarization + " " + calculate_stats(df,numerical_cols)
 
 
-
+    generate_dist_plots(df,numerical_cols)
 
     # visualize_data(df)
     narrative = generate_narrative(compact_summarization)
