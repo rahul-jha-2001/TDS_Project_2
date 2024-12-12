@@ -1,0 +1,4 @@
+set AIPROXY_TOKEN= eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIyZjEwMDAyMTNAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.UrF4VGAcZE6JaDyAjlGqKg5VS1Hhl4rFlhr4uEkNn3M
+set SUBMISSION=https://github.com/rahul-jha-2001/TDS_Project_2/blob/main/autolysis.py
+set EVALUATOR=https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/tds-2024-t3-project2-wip/project2/evaluate.py
+uv run "%EVALUATOR%" "%SUBMISSION%"
