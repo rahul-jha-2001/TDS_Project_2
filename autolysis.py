@@ -8,6 +8,8 @@ import httpx
 import chardet
 import os
 import dotenv
+import matplotlib.pyplot as plt
+import seaborn as sns
 dotenv.load_dotenv()
 # Constants
 API_URL = "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
@@ -187,17 +189,29 @@ def generate_narrative(analysis):
 
 
 def generate_dist_plots(df, numerical_cols):
-    import matplotlib.pyplot as plt
-    plt.figure(figsize=(15, 50))  # Adjust figure size as needed
-    for col in numerical_cols:
-        plt.figure(figsize=(8, 6))  # Adjust individual plot size as needed
-        plt.hist(df[col], bins=100)  # Adjust number of bins as needed
+    num_plots = len(numerical_cols)
+    cols_per_row = 2  # Adjust as needed
+    rows = (num_plots + cols_per_row - 1) // cols_per_row
+    plt.figure(figsize=(15, 5 * rows))  # Adjust figure size dynamically
+
+    for i, col in enumerate(numerical_cols):
+        plt.subplot(rows, cols_per_row, i + 1)  # Create subplots dynamically
+        plt.hist(df[col], bins=100)  # Adjust the number of bins as needed
         plt.title(f'Distribution of {col}')
         plt.xlabel(col)
         plt.ylabel('Frequency')
-        plt.tight_layout()
-        plt.savefig(f'distribution_{col}.png')  # Save each plot with a unique name
-        plt.close()  # Close the figure to free up memory
+
+    plt.tight_layout()  # Adjust layout to prevent overlapping
+    plt.savefig("Distribution")
+
+def plot_correlation_heatmap(df, numerical_cols):
+    numerical_df = df[numerical_cols]
+    correlation_matrix = numerical_df.corr()
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
+    plt.title('Correlation Matrix Heatmap')
+    plt.savefig(f'corr.png')
+    plt.close()
 
 def create_and_change_dir(filename):
     import os
@@ -229,7 +243,7 @@ def main(file_path):
 
 
     generate_dist_plots(df,numerical_cols)
-
+    plot_correlation_heatmap(df,numerical_cols)
     # visualize_data(df)
     narrative = generate_narrative(compact_summarization)
     with open('README.md', 'w') as f:
