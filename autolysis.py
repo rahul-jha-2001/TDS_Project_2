@@ -2,7 +2,6 @@
 import os
 import sys
 import re
-import chardet
 import httpx
 import dotenv
 import numpy as np
