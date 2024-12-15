@@ -49,10 +49,14 @@ class DataAnalyzer:
         Returns:
             pd.DataFrame: Loaded DataFrame
         """
-        with open(file_path, 'rb') as f:
-            result = chardet.detect(f.read())
-        
-        return pd.read_csv(file_path, encoding=result['encoding'])
+        encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+    
+        for encoding in encodings:
+            try:
+                return pd.read_csv(file_path, encoding=encoding)
+            except UnicodeDecodeError:
+                continue
+        raise ValueError(f"Unable to load file with tried encodings: {encodings}")
 
     def _is_potential_identifier(self, series):
         """
@@ -643,7 +647,7 @@ class DataAnalyzer:
         df = self.load_data(file_path)
         df = self.remove_identifier_columns(df)
         df = self.remove_url_columns(df)
-        # self.create_analysis_directory(file_path)
+       # self.create_analysis_directory(file_path)
         # Analyze column types
         column_type_desc, object_cols, numerical_cols = self.analyze_column_types(df)
 
