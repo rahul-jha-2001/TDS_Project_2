@@ -1,259 +1,4 @@
-# import os
-# import sys
-# import pandas as pd
-# import seaborn as sns
-# import numpy  as np
-# import matplotlib.pyplot as plt
-# import httpx
-# import chardet
-# import os
-# import dotenv
-# import matplotlib.pyplot as plt
-# import seaborn as sns
-# dotenv.load_dotenv()
-# # Constants
-# API_URL = "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
-# AIPROXY_TOKEN = os.environ["AIPROXY_TOKEN"]
 
-# def load_data(file_path):
-#     """Load CSV data with encoding detection."""
-#     with open(file_path, 'rb') as f:
-#         result = chardet.detect(f.read())
-#     encoding = result['encoding']
-#     return pd.read_csv(file_path, encoding=encoding)
-
-
-# def identify_and_remove_identifiers(df):
-#     """
-#     Identifies potential identifier columns in a DataFrame and removes all but the one with the most unique values.
-
-#     Args:
-#         df: The input DataFrame.
-
-#     Returns:
-#         A new DataFrame with the identified columns removed, except for the identifier column with the most unique values.
-#     """
-
-#     id_cols = []
-#     for col in df.columns:
-#       # Check for columns that are likely identifiers
-#       conditions = [
-#           # Columns with 100% unique values
-
-#           # Columns with names suggesting identification
-#           col.lower() in ['id', 'identifier', 'key', 'uid', 'uuid',
-#                         'index', 'name', 'username', 'email',
-#                         'code', 'reference', 'guid'],
-#           # Columns with string type and high cardinality
-#           (df[col].dtype == 'object' and
-#            df[col].nunique() > len(df) * 0.5),
-
-#           # Columns that look like typical ID formats
-#           (df[col].dtype == 'object' and
-#            df[col].str.match(r'^[A-Za-z0-9\-_]+$').all())
-#       ]
-
-#       if any(conditions):
-#           id_cols.append(col)
-
-#     if not id_cols:
-#         print("No potential identifier columns found.")
-#         return df
-
-#     # Find the identifier column with the most unique values
-#     best_id_col = max(id_cols, key=lambda col: df[col].nunique())
-
-#     #Remove other identifier columns
-#     cols_to_remove = [col for col in id_cols if col != best_id_col]
-
-#     print(f"Removing identifier columns: {cols_to_remove}")
-#     df = df.drop(columns=cols_to_remove)
-
-#     return df
-
-# def Drop_URL_Columns(df):
-#     import re
-
-#     # Function to check if a string contains a URL
-#     def contains_url(text):
-#       url_pattern = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
-#       return bool(url_pattern.search(text))
-
-
-#     # Identify columns with URLs
-#     url_columns = []
-#     for col in df.columns:
-#       if df[col].apply(lambda x: isinstance(x, str) and contains_url(x)).any():
-#         url_columns.append(col)
-
-#     # Remove URL columns from the DataFrame
-#     df = df.drop(columns=url_columns)
-#     return df
-
-# def columns_dtype(df):
-#   # Get a list of numerical columns
-#   numerical_cols = df.select_dtypes(include=np.number).columns.tolist()
-#   # Get a list of object columns
-#   object_cols = df.select_dtypes(include='object').columns.tolist()
-#   return f"Numerical:{numerical_cols}, Objects: {object_cols}",object_cols,numerical_cols
-
-# def Value_composition(df,object_cols):
-#     tmp = ""
-#     for col in object_cols:
-#         value_counts = df[col].value_counts(normalize=True) * 100
-#         tmp = tmp + f"\nPercentage of unique values for column '{col}':{value_counts}"
-    
-    
-#     headers = {
-#         'Authorization': f'Bearer {AIPROXY_TOKEN}',
-#         'Content-Type': 'application/json'
-#     }
-#     prompt = f"Summarize the following data to be futher passed to an LLM for analysis: {tmp}"
-#     data = {
-#         "model": "gpt-4o-mini",
-#         "messages": [{"role": "user", "content": prompt}]
-#     }
-#     try:
-#         response = httpx.post(API_URL, headers=headers, json=data, timeout=30.0)
-#         response.raise_for_status()
-#         return response.json()['choices'][0]['message']['content']
-#     except httpx.HTTPStatusError as e:
-#         print(f"HTTP error occurred: {e}")
-#     except httpx.RequestError as e:
-#         print(f"Request error occurred: {e}")
-#     except Exception as e:
-#         print(f"An unexpected error occurred: {e}")
-#     return "Narrative generation failed due to an error."
-
-# def calculate_stats(df, numerical_cols):
-#     stats = {}
-#     for col in numerical_cols:
-#         # Remove rows with NaN or 'unknown' in the current column
-#         cleaned_data = df[df[col].notna() & ~df[col].astype(str).str.lower().str.contains('unknown')][col]
-
-#         if not cleaned_data.empty:
-#           stats[col] = {
-#                 'mean': cleaned_data.mean(),
-#                 'median': cleaned_data.median(),
-#                 'mode': cleaned_data.mode().iloc[0] if not cleaned_data.mode().empty else None
-#           }
-#         else:
-#           stats[col] = {
-#               'mean': None,
-#               'median': None,
-#               'mode': None
-#             }
-#     headers = {
-#         'Authorization': f'Bearer {AIPROXY_TOKEN}',
-#         'Content-Type': 'application/json'
-#     }
-#     prompt = f"You being a Data Scientist to Your Understading pick imp part of this data and Summarize the following data to be futher passed to an LLM for analysis: {stats}"
-#     data = {
-#         "model": "gpt-4o-mini",
-#         "messages": [{"role": "user", "content": prompt}]
-#     }
-   
-#     response = httpx.post(API_URL, headers=headers, json=data, timeout=30.0)
-#     response.raise_for_status()
-#     return response.json()['choices'][0]['message']['content']
-
-
-# def generate_narrative(analysis):
-#     """Generate narrative using LLM."""
-#     headers = {
-#         'Authorization': f'Bearer {AIPROXY_TOKEN}',
-#         'Content-Type': 'application/json'
-#     }
-#     prompt = f"""Provide a detailed analytic stroy based on the following data summary 
-#     Have it describe:
-
-#     The data you received, briefly
-#     The analysis you carried out
-#     The insights you discovered
-#     The implications of your findings (i.e. what to do with the insights): {analysis}"""
-#     data = {
-#         "model": "gpt-4o-mini",
-#         "messages": [{"role": "user", "content": prompt}]
-#     }
-#     try:
-#         response = httpx.post(API_URL, headers=headers, json=data, timeout=30.0)
-#         response.raise_for_status()
-#         return response.json()['choices'][0]['message']['content']
-#     except httpx.HTTPStatusError as e:
-#         print(f"HTTP error occurred: {e}")
-#     except httpx.RequestError as e:
-#         print(f"Request error occurred: {e}")
-#     except Exception as e:
-#         print(f"An unexpected error occurred: {e}")
-#     return "Narrative generation failed due to an error."
-
-
-# def generate_dist_plots(df, numerical_cols):
-#     num_plots = len(numerical_cols)
-#     cols_per_row = 2  # Adjust as needed
-#     rows = (num_plots + cols_per_row - 1) // cols_per_row
-#     plt.figure(figsize=(15, 5 * rows))  # Adjust figure size dynamically
-
-#     for i, col in enumerate(numerical_cols):
-#         plt.subplot(rows, cols_per_row, i + 1)  # Create subplots dynamically
-#         plt.hist(df[col], bins=100)  # Adjust the number of bins as needed
-#         plt.title(f'Distribution of {col}')
-#         plt.xlabel(col)
-#         plt.ylabel('Frequency')
-
-#     plt.tight_layout()  # Adjust layout to prevent overlapping
-#     plt.savefig("Distribution")
-
-# def plot_correlation_heatmap(df, numerical_cols):
-#     numerical_df = df[numerical_cols]
-#     correlation_matrix = numerical_df.corr()
-#     plt.figure(figsize=(10, 8))
-#     sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
-#     plt.title('Correlation Matrix Heatmap')
-#     plt.savefig(f'corr.png')
-#     plt.close()
-
-# def create_and_change_dir(filename):
-#     import os
-#     # Get the directory name from the filename
-#     directory_name = os.path.splitext(filename)[0]
-    
-#     # Create the directory if it doesn't exist
-#     if not os.path.exists(directory_name):
-#         os.mkdir(directory_name)
-#         print(f"Directory '{directory_name}' created.")
-#     else:
-#         print(f"Directory '{directory_name}' already exists.")
-    
-#     # Change to the new directory
-#     os.chdir(directory_name)
-#     print(f"Changed directory to '{os.getcwd()}'")
-
-# def main(file_path):
-#     df = load_data(file_path)
-#     create_and_change_dir(file_path)
-#     compact_summarization = ""
-    
-#     df = identify_and_remove_identifiers(df)
-#     df = Drop_URL_Columns(df)
-#     _,object_cols,numerical_cols = columns_dtype(df)
-#     compact_summarization = compact_summarization + _
-#     compact_summarization = compact_summarization + " " + Value_composition(df,object_cols)
-#     compact_summarization = compact_summarization + " " + calculate_stats(df,numerical_cols)
-
-
-#     generate_dist_plots(df,numerical_cols)
-#     plot_correlation_heatmap(df,numerical_cols)
-#     # visualize_data(df)
-#     narrative = generate_narrative(compact_summarization)
-#     with open('README.md', 'w') as f:
-#         f.write(narrative)
-
-# if __name__ == "__main__":
-#     if len(sys.argv) != 2:
-#         print("Usage: python autolysis.py <dataset.csv>")
-#         sys.exit(1)
-#     main(sys.argv[1])
 import os
 import sys
 import re
@@ -264,6 +9,13 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import scipy.stats as stats
+
+import matplotlib.font_manager as fm
+
+# Install or use a CJK-compatible font
+plt.rcParams['font.sans-serif'] = ['SimHei']  # Chinese (Simplified) font
+plt.rcParams['axes.unicode_minus'] = False
 
 class DataAnalyzer:
     """
@@ -334,6 +86,46 @@ class DataAnalyzer:
         )
 
         return name_condition or high_cardinality_condition or id_format_condition
+    
+    def _analyze_column_patterns(self, series):
+        """
+        Analyze patterns in a categorical column.
+        
+        Args:
+            series (pd.Series): Input series of categorical data
+        
+        Returns:
+            dict: Pattern analysis results
+        """
+        pattern_analysis = {
+            'starts_with': {},
+            'ends_with': {},
+            'contains': {}
+        }
+        
+        # Most common starting characters/substrings
+        try:
+            starts_with = series.str[:3].value_counts().head(5)
+            pattern_analysis['starts_with'] = starts_with.to_dict()
+        except Exception:
+            pass
+        
+        # Most common ending characters/substrings
+        try:
+            ends_with = series.str[-3:].value_counts().head(5)
+            pattern_analysis['ends_with'] = ends_with.to_dict()
+        except Exception:
+            pass
+        
+        # Most common substrings
+        try:
+            # Extract substrings of length 3-4 and count
+            contains_substrings = series.str.findall(r'\w{3,4}').explode().value_counts().head(5)
+            pattern_analysis['contains'] = contains_substrings.to_dict()
+        except Exception:
+            pass
+        
+        return pattern_analysis
 
     def remove_identifier_columns(self, df):
         """
@@ -414,12 +206,72 @@ class DataAnalyzer:
         Returns:
             str: Summarized value composition
         """
-        value_compositions = []
+        analysis_results = {}
+    
         for col in object_cols:
-            value_counts = df[col].value_counts(normalize=True) * 100
-            value_compositions.append(f"Percentage of unique values for column '{col}':\n{value_counts}")
-        
-        return "\n".join(value_compositions)
+            # 1. Basic Value Counts and Percentages
+            value_counts = df[col].value_counts()
+            percentages = df[col].value_counts(normalize=True) * 100
+            
+            # 2. Unique Value Analysis
+            unique_values = df[col].nunique()
+            most_common = value_counts.head(3)
+            least_common = value_counts.tail(3)
+            
+            # 3. Missing Value Analysis
+            missing_values = df[col].isnull().sum()
+            missing_percentage = (missing_values / len(df)) * 100
+            
+            # 4. Entropy Analysis (measure of diversity)
+            try:
+                value_probs = percentages / 100
+                entropy = stats.entropy(value_probs)
+            except Exception:
+                entropy = None
+            
+            # 5. Top Value Details
+            top_value_details = {
+                'top_value': value_counts.index[0],
+                'top_value_count': value_counts.iloc[0],
+                'top_value_percentage': percentages.iloc[0]
+            }
+            
+            # 6. Length Analysis (for string columns)
+            try:
+                length_stats = df[col].str.len().describe()
+            except Exception:
+                length_stats = None
+            
+            # 7. Categorical Encoding Potential
+            encoding_potential = {
+                'unique_values': unique_values,
+                'is_binary': unique_values == 2,
+                'low_cardinality': unique_values <= 10,
+                'high_cardinality': unique_values > 50
+            }
+            
+            # 8. Pattern Analysis (regex matching)
+            pattern_analysis = self._analyze_column_patterns(df[col])
+            
+            # Compile results
+            analysis_results[col] = {
+                'value_counts': value_counts.to_dict(),
+                'percentages': percentages.to_dict(),
+                'unique_values_count': unique_values,
+                'most_common_values': most_common.to_dict(),
+                'least_common_values': least_common.to_dict(),
+                'missing_values': {
+                    'count': missing_values,
+                    'percentage': missing_percentage
+                },
+                'entropy': entropy,
+                'top_value_details': top_value_details,
+                'length_stats': length_stats.to_dict() if length_stats is not None else None,
+                'encoding_potential': encoding_potential,
+                'pattern_analysis': pattern_analysis
+            }
+    
+        return "\n".join(analysis_results)
 
     def _call_llm_api(self, prompt, model="gpt-4o-mini"):
         """
@@ -450,49 +302,212 @@ class DataAnalyzer:
             print(f"LLM API call error: {e}")
             return "LLM generation failed."
 
-    def calculate_column_stats(self, df, numerical_cols):
+    def analyze_numerical_columns(self, df, numerical_cols):
         """
-        Calculate basic statistics for numerical columns.
+        Perform comprehensive statistical analysis on numerical columns.
         
         Args:
             df (pd.DataFrame): Input DataFrame
             numerical_cols (list): List of numerical column names
         
         Returns:
-            dict: Column statistics
+            dict: Comprehensive statistical analysis of numerical columns
         """
-        stats = {}
+        comprehensive_stats = {}
+        
         for col in numerical_cols:
-            # Remove rows with NaN or 'unknown' values
+            # Clean data (remove NaN, 'unknown', etc.)
             cleaned_data = df[
                 df[col].notna() & 
                 ~df[col].astype(str).str.lower().str.contains('unknown')
             ][col]
-
-            if not cleaned_data.empty:
-                stats[col] = {
-                    'mean': cleaned_data.mean(),
-                    'median': cleaned_data.median(),
-                    'mode': cleaned_data.mode().iloc[0] if not cleaned_data.mode().empty else None
+            
+            # Skip if no valid data
+            if cleaned_data.empty:
+                comprehensive_stats[col] = {
+                    'data_valid': False,
+                    'error': 'No valid numerical data found'
                 }
-            else:
-                stats[col] = {'mean': None, 'median': None, 'mode': None}
+                continue
+            
+            # 1. Basic Descriptive Statistics
+            desc_stats = cleaned_data.describe()
+            
+            # 2. Advanced Distributional Statistics
+            try:
+                # Skewness and Kurtosis
+                skewness = cleaned_data.skew()
+                kurtosis = cleaned_data.kurtosis()
+                
+                # Normality Tests
+                _, shapiro_p_value = stats.shapiro(cleaned_data)
+                
+                # Detailed Percentiles
+                percentiles = [1, 5, 25, 50, 75, 95, 99]
+                detailed_percentiles = {f'{p}th': np.percentile(cleaned_data, p) for p in percentiles}
+            except Exception as e:
+                skewness = None
+                kurtosis = None
+                shapiro_p_value = None
+                detailed_percentiles = None
+            
+            # 3. Outlier Analysis
+            try:
+                # Interquartile Range (IQR) method
+                Q1 = cleaned_data.quantile(0.25)
+                Q3 = cleaned_data.quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - (1.5 * IQR)
+                upper_bound = Q3 + (1.5 * IQR)
+                
+                outliers = cleaned_data[(cleaned_data < lower_bound) | (cleaned_data > upper_bound)]
+                outlier_stats = {
+                    'count': len(outliers),
+                    'percentage': (len(outliers) / len(cleaned_data)) * 100,
+                    'lower_bound': lower_bound,
+                    'upper_bound': upper_bound
+                }
+            except Exception as e:
+                outlier_stats = None
+            
+            # 4. Correlation Analysis
+            try:
+                # Compute correlations with other numerical columns
+                correlations = df[numerical_cols].corr()[col].drop(col)
+                top_correlations = correlations.abs().nlargest(3)
+            except Exception as e:
+                correlations = None
+                top_correlations = None
+            
+            # 5. Frequency and Binning Analysis
+            try:
+                # Create histogram-like binning
+                hist, bin_edges = np.histogram(cleaned_data, bins='auto')
+                bin_analysis = {
+                    'bin_edges': bin_edges.tolist(),
+                    'frequencies': hist.tolist()
+                }
+            except Exception as e:
+                bin_analysis = None
+            
+            # 6. Statistical Tests
+            try:
+                # One-sample t-test against 0
+                t_statistic, t_p_value = stats.ttest_1samp(cleaned_data, 0)
+            except Exception as e:
+                t_statistic = None
+                t_p_value = None
+            
+            # Compile comprehensive statistics
+            comprehensive_stats[col] = {
+                'data_valid': True,
+                'basic_stats': {
+                    'count': desc_stats['count'],
+                    'mean': desc_stats['mean'],
+                    'median': desc_stats['50%'],
+                    'mode': cleaned_data.mode().iloc[0] if not cleaned_data.mode().empty else None,
+                    'std_dev': desc_stats['std'],
+                    'min': desc_stats['min'],
+                    'max': desc_stats['max']
+                },
+                'distribution': {
+                    'skewness': skewness,
+                    'kurtosis': kurtosis,
+                    'shapiro_test_p_value': shapiro_p_value,
+                    'is_normal_distribution': shapiro_p_value > 0.05 if shapiro_p_value is not None else None
+                },
+                'percentiles': detailed_percentiles,
+                'outliers': outlier_stats,
+                'correlations': {
+                    'values': correlations.to_dict() if correlations is not None else None,
+                    'top_3_correlations': top_correlations.to_dict() if top_correlations is not None else None
+                },
+                'binning_analysis': bin_analysis,
+                'statistical_tests': {
+                    't_test_against_zero': {
+                        't_statistic': t_statistic,
+                        'p_value': t_p_value
+                    }
+                }
+            }
         
-        return stats
+        return "\n".join(comprehensive_stats)
 
-    def generate_visualizations(self, df, numerical_cols):
+    def additional_advanced_analysis(self, df, numerical_cols):
         """
-        Generate distribution plots and correlation heatmap.
+        Perform additional advanced analyses on numerical columns.
         
         Args:
             df (pd.DataFrame): Input DataFrame
             numerical_cols (list): List of numerical column names
+        
+        Returns:
+            dict: Advanced statistical analyses
         """
-        # Distribution Plots
+        advanced_analysis = {}
+        
+        for col in numerical_cols:
+            cleaned_data = df[
+                df[col].notna() & 
+                ~df[col].astype(str).str.lower().str.contains('unknown')
+            ][col]
+            
+            if cleaned_data.empty:
+                continue
+            
+            # 1. Time Series-like Analysis (if applicable)
+            try:
+                rolling_mean = cleaned_data.rolling(window=3).mean()
+                rolling_std = cleaned_data.rolling(window=3).std()
+            except Exception as e:
+                rolling_mean = None
+                rolling_std = None
+            
+            # 2. Extreme Value Analysis
+            try:
+                extreme_values = {
+                    'min_3': cleaned_data.nsmallest(3).tolist(),
+                    'max_3': cleaned_data.nlargest(3).tolist()
+                }
+            except Exception as e:
+                extreme_values = None
+            
+            # 3. Advanced Statistical Distributions
+            try:
+                # Fit various distributions
+                distributions = {
+                    'normal': stats.norm.fit(cleaned_data),
+                    'exponential': stats.expon.fit(cleaned_data),
+                    'gamma': stats.gamma.fit(cleaned_data)
+                }
+            except Exception as e:
+                distributions = None
+            
+            advanced_analysis[col] = {
+                'rolling_analysis': {
+                    'rolling_mean': rolling_mean.tolist() if rolling_mean is not None else None,
+                    'rolling_std': rolling_std.tolist() if rolling_std is not None else None
+                },
+                'extreme_values': extreme_values,
+                'distribution_fits': distributions
+            }
+        return "\n".join(advanced_analysis)
+
+    def generate_visualizations(self, df, numerical_cols, obj_cols):
+        """
+        Generate comprehensive visualizations for numerical and categorical data.
+        
+        Args:
+            df (pd.DataFrame): Input DataFrame
+            numerical_cols (list): List of numerical column names
+            obj_cols (list): List of categorical column names
+        """
+        # Determine layout for plots
         num_plots = len(numerical_cols)
         cols_per_row = 2
         rows = (num_plots + cols_per_row - 1) // cols_per_row
-        
+
+        # 1. Histogram Distribution Plots
         plt.figure(figsize=(15, 5 * rows))
         for i, col in enumerate(numerical_cols):
             plt.subplot(rows, cols_per_row, i + 1)
@@ -501,16 +516,82 @@ class DataAnalyzer:
             plt.xlabel(col)
             plt.ylabel('Frequency')
         plt.tight_layout()
-        plt.savefig("distribution_plots.png")
+        plt.savefig("1_distribution_plots.png")
         plt.close()
 
-        # Correlation Heatmap
+        # 2. Box Plots
+        plt.figure(figsize=(15, 5 * rows))
+        for i, col in enumerate(numerical_cols):
+            plt.subplot(rows, cols_per_row, i + 1)
+            plt.boxplot(df[col])
+            plt.title(f'Box Plot of {col}')
+            plt.ylabel(col)
+        plt.tight_layout()
+        plt.savefig("2_boxplots.png")
+        plt.close()
+
+        # 3. Violin Plots
+        plt.figure(figsize=(15, 5 * rows))
+        for i, col in enumerate(numerical_cols):
+            plt.subplot(rows, cols_per_row, i + 1)
+            sns.violinplot(x=df[col])
+            plt.title(f'Violin Plot of {col}')
+            plt.xlabel(col)
+        plt.tight_layout()
+        plt.savefig("3_violin_plots.png")
+        plt.close()
+
+        # 4. Kernel Density Estimation (KDE) Plots
+        plt.figure(figsize=(15, 5 * rows))
+        for i, col in enumerate(numerical_cols):
+            plt.subplot(rows, cols_per_row, i + 1)
+            sns.kdeplot(df[col], fill=True)
+            plt.title(f'Density Plot of {col}')
+            plt.xlabel(col)
+            plt.ylabel('Density')
+        plt.tight_layout()
+        plt.savefig("4_kde_plots.png")
+        plt.close()
+
+        # 5. Correlation Heatmap
         numerical_df = df[numerical_cols]
         correlation_matrix = numerical_df.corr()
         plt.figure(figsize=(10, 8))
         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
         plt.title('Correlation Matrix Heatmap')
-        plt.savefig('correlation_heatmap.png')
+        plt.savefig('5_correlation_heatmap.png')
+        plt.close()
+
+        # # 6. Pair Plot
+        # try:
+        #     plt.figure(figsize=(15, 15))
+        #     sns.pairplot(df[numerical_cols])
+        #     plt.suptitle('Pair Plot of Numerical Columns', y=1.02)
+        #     plt.savefig('6_pairplot.png')
+        #     plt.close()
+        # except Exception as e:
+        #     print(f"Could not generate pair plot: {e}")
+
+        # 7. Categorical Distribution Plots
+        if obj_cols and len(obj_cols) > 0:
+            plt.figure(figsize=(15, 5 * len(obj_cols)))
+            for i, col in enumerate(obj_cols):
+                plt.subplot(len(obj_cols), 1, i + 1)
+                df[col].value_counts().plot(kind='bar')
+                plt.title(f'Distribution of {col}')
+                plt.xlabel('Categories')
+                plt.ylabel('Count')
+                plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            plt.savefig("7_categorical_distributions.png")
+            plt.close()
+
+        # 8. Scatter Plot Matrix
+        plt.figure(figsize=(15, 15))
+        pd.plotting.scatter_matrix(df[numerical_cols], figsize=(15, 15), 
+                                    diagonal='kde', alpha=0.7)
+        plt.suptitle('Scatter Plot Matrix', y=0.95)
+        plt.savefig('8_scatter_matrix.png')
         plt.close()
 
     def generate_data_narrative(self, compact_summary):
@@ -562,23 +643,33 @@ class DataAnalyzer:
         df = self.load_data(file_path)
         df = self.remove_identifier_columns(df)
         df = self.remove_url_columns(df)
-        self.create_analysis_directory(file_path)
+        # self.create_analysis_directory(file_path)
         # Analyze column types
         column_type_desc, object_cols, numerical_cols = self.analyze_column_types(df)
 
         # Collect analysis components
         compact_summary = [column_type_desc]
-        compact_summary.append(self.analyze_object_columns(df, object_cols))
-        
+         
+       
+        object_columns_summary = self._call_llm_api(
+            f"Analyze these column statistics from a Data Scientist perspective: {self.analyze_object_columns(df, object_cols)}"
+        )
+        compact_summary.append(object_columns_summary)
         # Calculate statistics
-        column_stats = self.calculate_column_stats(df, numerical_cols)
+        numerical_stats = self.analyze_numerical_columns(df, numerical_cols)
         column_stats_summary = self._call_llm_api(
-            f"Analyze these column statistics from a Data Scientist perspective: {column_stats}"
+            f"Analyze these column statistics from a Data Scientist perspective: {numerical_stats}"
+        )
+        compact_summary.append(column_stats_summary)
+
+        advan_numerical_stats = self.additional_advanced_analysis(df, numerical_cols)
+        column_stats_summary = self._call_llm_api(
+            f"Analyze these column statistics from a Data Scientist perspective: {advan_numerical_stats}"
         )
         compact_summary.append(column_stats_summary)
 
         # Generate visualizations
-        self.generate_visualizations(df, numerical_cols)
+        self.generate_visualizations(df, numerical_cols,object_cols)
 
         # Generate narrative
         narrative = self.generate_data_narrative(" ".join(compact_summary))
