@@ -602,13 +602,13 @@ class DataAnalyzer:
             plt.savefig("7_categorical_distributions.png")
             plt.close()
 
-        # 8. Scatter Plot Matrix
-        plt.figure(figsize=(15, 15))
-        pd.plotting.scatter_matrix(df[numerical_cols], figsize=(15, 15), 
-                                    diagonal='kde', alpha=0.7)
-        plt.suptitle('Scatter Plot Matrix', y=0.95)
-        plt.savefig('8_scatter_matrix.png')
-        plt.close()
+        # # 8. Scatter Plot Matrix
+        # plt.figure(figsize=(15, 15))
+        # pd.plotting.scatter_matrix(df[numerical_cols], figsize=(15, 15), 
+        #                             diagonal='kde', alpha=0.7)
+        # plt.suptitle('Scatter Plot Matrix', y=0.95)
+        # plt.savefig('8_scatter_matrix.png')
+        # plt.close()
 
     def generate_data_narrative(self, compact_summary):
         """
