@@ -10,6 +10,7 @@
 #   "openai",
 #   "numpy",
 #   "scipy",
+#   "dotenv"
 # ]
 # ///
 
@@ -24,6 +25,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+import chardet
 
 import matplotlib.font_manager as fm
 
@@ -63,14 +65,10 @@ class DataAnalyzer:
         Returns:
             pd.DataFrame: Loaded DataFrame
         """
-        encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
-    
-        for encoding in encodings:
-            try:
-                return pd.read_csv(file_path, encoding=encoding)
-            except UnicodeDecodeError:
-                continue
-        raise ValueError(f"Unable to load file with tried encodings: {encodings}")
+        with open(file_path, 'rb') as f:
+            result = chardet.detect(f.read())
+
+        return pd.read_csv(file_path, encoding=result['encoding'])
 
     def _is_potential_identifier(self, series):
         """
